@@ -37,8 +37,17 @@ def matches_core_keyword(title: str) -> bool:
     return False
 
 
+def is_hard_excluded(title: str) -> bool:
+    for word in HARD_EXCLUDE_KEYWORDS:
+        if word == "環境改善工程" and "光環境" in title:
+            continue
+        if word in title:
+            return True
+    return False
+
+
 def is_relevant_title(title: str) -> bool:
-    if any(word in title for word in HARD_EXCLUDE_KEYWORDS):
+    if is_hard_excluded(title):
         return False
     has_core = matches_core_keyword(title)
     if not has_core and any(word in title for word in SOFT_EXCLUDE_KEYWORDS):
