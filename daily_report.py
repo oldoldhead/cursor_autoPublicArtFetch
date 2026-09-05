@@ -17,9 +17,11 @@ from database import (
     make_tender_id,
     mark_expired_before,
     now_iso,
+    reset_all_tenders,
     upsert_tender,
 )
 from email_template import ReportSummary, build_html, build_subject
+from config import MIN_DAYS_LEFT
 from fetch_detail import is_expired_on
 from pcc_utils import today_taipei
 from search import find_high_relevance_tenders
@@ -59,8 +61,9 @@ def sync_search_results(today: date, use_openai: bool = False) -> tuple[int, int
                 today=today,
             )
             analyzed_at = now_iso()
+        if is_new:
             new_count += 1
-        elif not is_new:
+        else:
             updated_count += 1
 
         row = TenderRow(
@@ -96,7 +99,9 @@ def build_report_summary(today: date, expired_count: int) -> ReportSummary:
     active = [
         item
         for item in active
-        if not is_expired_on(item.deadline_date, today)
+        if item.deadline_date is not None
+        and not is_expired_on(item.deadline_date, today)
+        and (item.deadline_date - today).days >= MIN_DAYS_LEFT
     ]
 
     new_items = [item for item in active if item.first_seen == today.isoformat()]
@@ -162,11 +167,15 @@ def main() -> int:
         help="允許在仍有待分析標案時寄信",
     )
     parser.add_argument("--commit-db", action="store_true", help="執行後 commit database 到 git")
+    parser.add_argument("--reset-db", action="store_true", help="清空既有標案與分析後再同步")
     args = parser.parse_args()
 
     init_db()
     today = today_taipei()
     print(f"Report date: {today.isoformat()}")
+    if args.reset_db:
+        cleared = reset_all_tenders()
+        print(f"Reset database: cleared {cleared} row(s)")
 
     expired_ids = mark_expired_before(today)
     print(f"Expired today: {len(expired_ids)}")

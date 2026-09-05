@@ -10,7 +10,8 @@ DB_PATH = DATA_DIR / "database.db"
 load_dotenv(ROOT_DIR / ".env")
 
 MIN_BUDGET = 700_000
-MAX_BUDGET = 3_000_000
+MAX_BUDGET = 5_000_000
+MIN_DAYS_LEFT = 5
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
@@ -32,11 +33,12 @@ SEARCH_KEYWORDS = [
     "燈光藝術",
     "數位互動",
     "文化地景",
+    "光環境",
 ]
 
 INCLUDE_KEYWORDS = SEARCH_KEYWORDS + ["互動體驗", "設置計畫", "展示製作"]
 
-CORE_KEYWORDS = ["公共藝術", "互動裝置", "藝術裝置", "裝置藝術", "光節", "燈光節", "數位互動"]
+CORE_KEYWORDS = ["公共藝術", "互動裝置", "藝術裝置", "裝置藝術", "光節", "燈光節", "數位互動", "光環境"]
 
 HARD_EXCLUDE_KEYWORDS = [
     "清潔",
