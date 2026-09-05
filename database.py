@@ -224,6 +224,17 @@ def list_pending_analysis() -> list[TenderRow]:
     return [_row_to_tender(row) for row in rows]
 
 
+def normalize_analysis(text: str) -> str:
+    """大項標題獨立成行，大項之間空一行，方便老闆簡報閱讀。"""
+    from analysis_rules import ANALYSIS_SECTIONS
+
+    text = text.replace("\r\n", "\n").strip()
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    for header in ANALYSIS_SECTIONS:
+        text = re.sub(rf"\s*{re.escape(header)}\s*", f"\n\n{header}\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 def extract_fit_level(analysis: str) -> str | None:
     if not analysis:
         return None
@@ -248,7 +259,7 @@ def reset_all_tenders() -> int:
 
 def set_analysis(tender_id: str, analysis: str) -> bool:
     """寫入 Cursor Agent 產生的分析。契合度非高者改為 skipped，不進日報。"""
-    analysis = analysis.strip()
+    analysis = normalize_analysis(analysis)
     if not analysis:
         return False
     fit = extract_fit_level(analysis)

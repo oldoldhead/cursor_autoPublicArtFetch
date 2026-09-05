@@ -8,8 +8,9 @@ import json
 import sys
 from pathlib import Path
 
+from analysis_rules import ANALYSIS_SECTIONS, ANALYSIS_STYLE
 from analyze import format_days_left
-from config import DATA_DIR
+from config import DATA_DIR, MAX_BUDGET, MIN_BUDGET, MIN_DAYS_LEFT
 from database import init_db, list_pending_analysis
 from fetch_detail import is_expired_on
 from pcc_utils import today_taipei
@@ -61,16 +62,11 @@ def main() -> int:
         "count": len(pending),
         "tenders": [tender_to_dict(item, today) for item in pending],
         "analysis_template": {
-            "sections": [
-                "【案件簡述】",
-                "【與雜波契合度】",
-                "【技術與履約重點】",
-                "【風險與注意事項】",
-                "【行動建議】",
-            ],
-            "company": "雜波 — 中小型公共藝術執行、互動裝置開發",
-            "budget_range": "70～500 萬",
-            "min_days_left": 7,
+            "sections": ANALYSIS_SECTIONS,
+            "style": ANALYSIS_STYLE,
+            "company": "雜波 — 中小型公共藝術執行、互動裝置、光節／光環境",
+            "budget_range": f"{MIN_BUDGET // 10000}～{MAX_BUDGET // 10000} 萬",
+            "min_days_left": MIN_DAYS_LEFT,
             "keep": "僅契合度高",
         },
     }

@@ -1,3 +1,4 @@
+import html
 from dataclasses import dataclass
 from datetime import date
 
@@ -44,7 +45,7 @@ def _render_tender_block(item: TenderRow, today: date, show_new_badge: bool) -> 
       <p style="margin:14px 0 4px;font-size:14px;"><strong>🤖 AI 分析</strong>
         <span style="color:#6b7280;">（{analyzed_label} 分析{"" if show_new_badge else "，未重跑"}）</span>
       </p>
-      <p style="margin:0;font-size:14px;line-height:1.6;">{item.ai_analysis or "（尚無分析）"}</p>
+      <p style="margin:0;font-size:14px;line-height:1.7;white-space:pre-line;">{html.escape(item.ai_analysis or "（尚無分析）")}</p>
     </div>
     """
 
@@ -82,7 +83,7 @@ def build_html(summary: ReportSummary) -> str:
         {date_label}（週{weekday}）
       </p>
       <p style="font-size:14px;">
-        篩選：公共藝術／互動裝置／光環境｜預算 70～500 萬｜截止日至少 7 天｜僅列契合度高
+        篩選：公共藝術／互動裝置／光環境｜預算 70～500 萬｜截止日至少 5 天｜僅列契合度高
       </p>
 
       <h2 style="font-size:18px;margin-top:28px;">🆕 今日新增（{len(summary.new_items)} 筆）</h2>
