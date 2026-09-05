@@ -105,13 +105,21 @@ def fetch_tender_detail(unit_id: str, job_number: str) -> dict | None:
         "is_electronic_bid": electronic_bid,
         "is_electronic_pickup": electronic_pickup,
         "url": detail.get("url", ""),
-        "method": get_detail_field(detail, "採購資料:招標方式", "已公告資料:招標方式"),
+        "method": get_detail_field(
+            detail,
+            "招標資料:招標方式",
+            "採購資料:招標方式",
+            "已公告資料:招標方式",
+            "招標方式",
+        ),
         "location": get_detail_field(
             detail,
+            "其他:履約地點",
             "採購資料:履約地點（含地區）",
             "採購資料:履約地點",
             "已公告資料:履約地點（含地區）",
             "已公告資料:履約地點",
+            "履約地點",
         ),
         "dtype": dtype,
     }

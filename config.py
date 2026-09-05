@@ -9,8 +9,9 @@ DB_PATH = DATA_DIR / "database.db"
 
 load_dotenv(ROOT_DIR / ".env")
 
-MIN_BUDGET = 700_000
-MAX_BUDGET = 3_000_000
+MIN_BUDGET = 1_000_000
+MAX_BUDGET = 5_000_000
+MIN_DAYS_LEFT = 10
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))

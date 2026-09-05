@@ -69,7 +69,9 @@ def main() -> int:
                 "【行動建議】",
             ],
             "company": "雜波 — 中小型公共藝術執行、互動裝置開發",
-            "budget_range": "70～300 萬",
+            "budget_range": "100～500 萬",
+            "min_days_left": 10,
+            "keep": "僅契合度高",
         },
     }
 

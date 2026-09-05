@@ -7,6 +7,7 @@ from config import (
     INCLUDE_KEYWORDS,
     MAX_BUDGET,
     MIN_BUDGET,
+    MIN_DAYS_LEFT,
     SEARCH_KEYWORDS,
     SOFT_EXCLUDE_KEYWORDS,
 )
@@ -133,6 +134,9 @@ def find_high_relevance_tenders(today: date | None = None) -> list[dict]:
         if detail["budget"] is None or not (MIN_BUDGET <= detail["budget"] <= MAX_BUDGET):
             continue
         if is_expired_on(detail["deadline_date"], today):
+            continue
+        deadline_date = detail["deadline_date"]
+        if deadline_date is None or (deadline_date - today).days < MIN_DAYS_LEFT:
             continue
 
         score = score_title(detail["title"])

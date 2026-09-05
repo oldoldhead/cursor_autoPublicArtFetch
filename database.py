@@ -1,9 +1,13 @@
+import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import date, datetime
 
 from config import DB_PATH, DATA_DIR
 from pcc_utils import TAIPEI
+
+FIT_HIGH = "高"
+STATUS_SKIPPED = "skipped"
 
 
 @dataclass
@@ -117,7 +121,10 @@ def upsert_tender(row: TenderRow) -> None:
                 matched_keywords = excluded.matched_keywords,
                 ai_analysis = COALESCE(tenders.ai_analysis, excluded.ai_analysis),
                 analyzed_at = COALESCE(tenders.analyzed_at, excluded.analyzed_at),
-                status = excluded.status,
+                status = CASE
+                    WHEN tenders.status IN ('skipped', 'expired') THEN tenders.status
+                    ELSE excluded.status
+                END,
                 last_in_report = excluded.last_in_report
             """,
             (
@@ -217,22 +224,49 @@ def list_pending_analysis() -> list[TenderRow]:
     return [_row_to_tender(row) for row in rows]
 
 
+def extract_fit_level(analysis: str) -> str | None:
+    if not analysis:
+        return None
+    match = re.search(r"【與雜波契合度】\s*(高|中|低)", analysis)
+    if match:
+        return match.group(1)
+    match = re.search(r"契合度[：:]\s*(高|中|低)", analysis)
+    if match:
+        return match.group(1)
+    return None
+
+
+def reset_all_tenders() -> int:
+    """清空標案與分析紀錄，供新篩選條件重跑。"""
+    with _connect() as conn:
+        row = conn.execute("SELECT COUNT(*) AS cnt FROM tenders").fetchone()
+        count = int(row["cnt"]) if row else 0
+        conn.execute("DELETE FROM tenders")
+        conn.commit()
+    return count
+
+
 def set_analysis(tender_id: str, analysis: str) -> bool:
-    """寫入 Cursor Agent 產生的分析。成功回傳 True。"""
+    """寫入 Cursor Agent 產生的分析。契合度非高者改為 skipped，不進日報。"""
     analysis = analysis.strip()
     if not analysis:
         return False
+    fit = extract_fit_level(analysis)
+    status = "active" if fit == FIT_HIGH else STATUS_SKIPPED
     with _connect() as conn:
         cursor = conn.execute(
             """
             UPDATE tenders
-            SET ai_analysis = ?, analyzed_at = ?
-            WHERE tender_id = ? AND status = 'active'
+            SET ai_analysis = ?, analyzed_at = ?, status = ?
+            WHERE tender_id = ?
             """,
-            (analysis, now_iso(), tender_id),
+            (analysis, now_iso(), status, tender_id),
         )
         conn.commit()
-        return cursor.rowcount > 0
+        if cursor.rowcount <= 0:
+            return False
+    print(f"  fit={fit or '未標示'} status={status}")
+    return True
 
 
 def now_iso() -> str:

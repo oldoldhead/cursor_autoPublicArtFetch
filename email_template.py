@@ -82,7 +82,7 @@ def build_html(summary: ReportSummary) -> str:
         {date_label}（週{weekday}）
       </p>
       <p style="font-size:14px;">
-        篩選：公共藝術／互動裝置｜預算 70～300 萬｜等標期內（截止當天移出）
+        篩選：公共藝術／互動裝置｜預算 100～500 萬｜截止日至少 10 天｜僅列契合度高
       </p>
 
       <h2 style="font-size:18px;margin-top:28px;">🆕 今日新增（{len(summary.new_items)} 筆）</h2>
