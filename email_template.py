@@ -1,9 +1,14 @@
 from dataclasses import dataclass
 from datetime import date
+from html import escape
 
 from analyze import format_days_left
 from database import TenderRow
 from pcc_utils import roc_date_str
+
+
+def _html_text(value: str) -> str:
+    return escape(value).replace("\n", "<br>")
 
 
 @dataclass
@@ -28,23 +33,23 @@ def _render_tender_block(item: TenderRow, today: date, show_new_badge: bool) -> 
     return f"""
     <div style="margin-bottom:28px;padding:16px;border:1px solid #e5e7eb;border-radius:8px;">
       {badge}
-      <h3 style="margin:0 0 12px;font-size:18px;">{item.title}</h3>
+      <h3 style="margin:0 0 12px;font-size:18px;">{escape(item.title)}</h3>
       <table style="border-collapse:collapse;width:100%;font-size:14px;">
-        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;width:120px;">機關</td><td>{item.unit_name}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;width:120px;">機關</td><td>{escape(item.unit_name)}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">預算</td><td>{item.budget:,} 元</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">起標日</td><td>{item.start_date or "未標示"}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">停止受理日</td><td>{item.deadline or "未標示"}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">距離截止日</td><td><strong>{days_left}</strong></td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">履約地點</td><td>{item.location or "未標示"}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">招標方式</td><td>{item.method or "未標示"}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">起標日</td><td>{escape(item.start_date or "未標示")}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">停止受理日</td><td>{escape(item.deadline or "未標示")}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">距離截止日</td><td><strong>{escape(days_left)}</strong></td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">履約地點</td><td>{escape(item.location or "未標示")}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">招標方式</td><td>{escape(item.method or "未標示")}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">電子招標</td><td>{_electronic_label(item.is_electronic_pickup, item.is_electronic_bid)}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">案號</td><td>{item.job_number}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">連結</td><td><a href="{item.url}">查看標案</a></td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">案號</td><td>{escape(item.job_number)}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">連結</td><td><a href="{escape(item.url, quote=True)}">查看標案</a></td></tr>
       </table>
       <p style="margin:14px 0 4px;font-size:14px;"><strong>🤖 AI 分析</strong>
-        <span style="color:#6b7280;">（{analyzed_label} 分析{"" if show_new_badge else "，未重跑"}）</span>
+        <span style="color:#6b7280;">（{escape(analyzed_label)} 分析{"" if show_new_badge else "，未重跑"}）</span>
       </p>
-      <p style="margin:0;font-size:14px;line-height:1.6;">{item.ai_analysis or "（尚無分析）"}</p>
+      <p style="margin:0;font-size:14px;line-height:1.6;">{_html_text(item.ai_analysis or "（尚無分析）")}</p>
     </div>
     """
 
