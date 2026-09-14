@@ -14,6 +14,17 @@ class ReportSummary:
     expired_today_count: int
 
 
+def _format_analysis(text: str | None) -> str:
+    if not text:
+        return "（尚無分析）"
+    escaped = (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    return escaped.replace("\n", "<br>")
+
+
 def _electronic_label(pickup: bool, bid: bool) -> str:
     pickup_text = "電子領標 ✅" if pickup else "電子領標 ❌"
     bid_text = "電子投標 ✅" if bid else "電子投標 ❌"
@@ -44,7 +55,7 @@ def _render_tender_block(item: TenderRow, today: date, show_new_badge: bool) -> 
       <p style="margin:14px 0 4px;font-size:14px;"><strong>🤖 AI 分析</strong>
         <span style="color:#6b7280;">（{analyzed_label} 分析{"" if show_new_badge else "，未重跑"}）</span>
       </p>
-      <p style="margin:0;font-size:14px;line-height:1.6;">{item.ai_analysis or "（尚無分析）"}</p>
+      <p style="margin:0;font-size:14px;line-height:1.6;">{_format_analysis(item.ai_analysis)}</p>
     </div>
     """
 
