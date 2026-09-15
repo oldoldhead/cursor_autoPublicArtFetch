@@ -51,50 +51,38 @@ def _render_tender_block(item: TenderRow, today: date, show_new_badge: bool) -> 
 
 def build_subject(summary: ReportSummary) -> str:
     date_text = summary.report_date.strftime("%Y/%m/%d")
-    return (
-        f"[雜波標案日報] {date_text} — "
-        f"追蹤中 {len(summary.tracking_items) + len(summary.new_items)} 筆｜"
-        f"新增 {len(summary.new_items)} 筆"
-    )
+    return f"[雜波標案] {date_text} — 新的高契合 {len(summary.new_items)} 筆"
 
 
 def build_html(summary: ReportSummary) -> str:
     today = summary.report_date
     date_label = f"{today.year} 年 {today.month:02d} 月 {today.day:02d} 日"
     weekday = "一二三四五六日"[today.weekday()]
-    total = len(summary.new_items) + len(summary.tracking_items)
 
     new_html = "".join(_render_tender_block(item, today, True) for item in summary.new_items)
-    tracking_html = "".join(_render_tender_block(item, today, False) for item in summary.tracking_items)
-
     if not new_html:
-        new_html = '<p style="color:#6b7280;">今日無新增高相關案件。</p>'
-    if not tracking_html:
-        tracking_html = '<p style="color:#6b7280;">目前無其他追蹤中案件。</p>'
+        new_html = '<p style="color:#6b7280;">今日無新增高契合案件。</p>'
 
     return f"""
     <!DOCTYPE html>
     <html lang="zh-Hant">
     <head><meta charset="UTF-8"></head>
     <body style="font-family:'Segoe UI',Arial,sans-serif;color:#111827;max-width:760px;margin:0 auto;padding:24px;">
-      <h1 style="font-size:22px;margin-bottom:4px;">📋 雜波標案每日監控報告</h1>
+      <h1 style="font-size:22px;margin-bottom:4px;">📋 雜波標案須關注通知</h1>
       <p style="color:#6b7280;margin-top:0;">
         {date_label}（週{weekday}）
       </p>
       <p style="font-size:14px;">
-        篩選：公共藝術／互動裝置｜預算 70～300 萬｜等標期內（截止當天移出）
+        僅在出現「新的、契合度為高」的標案時寄出；中／低與舊案不列入。
       </p>
 
-      <h2 style="font-size:18px;margin-top:28px;">🆕 今日新增（{len(summary.new_items)} 筆）</h2>
+      <h2 style="font-size:18px;margin-top:28px;">🆕 新的高契合（{len(summary.new_items)} 筆）</h2>
       {new_html}
-
-      <h2 style="font-size:18px;margin-top:28px;">⏳ 追蹤中（{len(summary.tracking_items)} 筆）</h2>
-      {tracking_html}
 
       <h2 style="font-size:18px;margin-top:28px;">📊 本日摘要</h2>
       <table style="border-collapse:collapse;font-size:14px;">
-        <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">追蹤中案件</td><td>{total} 筆</td></tr>
-        <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">今日新增</td><td>{len(summary.new_items)} 筆</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">本次通知</td><td>{len(summary.new_items)} 筆</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">資料庫仍在追蹤的高契合</td><td>{len(summary.tracking_items)} 筆（未列入本信）</td></tr>
         <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">今日移出（已截止）</td><td>{summary.expired_today_count} 筆</td></tr>
       </table>
 

@@ -8,6 +8,7 @@ import subprocess
 import sys
 from datetime import date
 
+from analyze import is_high_fit
 from database import (
     TenderRow,
     count_pending_analysis,
@@ -99,8 +100,18 @@ def build_report_summary(today: date, expired_count: int) -> ReportSummary:
         if not is_expired_on(item.deadline_date, today)
     ]
 
-    new_items = [item for item in active if item.first_seen == today.isoformat()]
-    tracking_items = [item for item in active if item.first_seen != today.isoformat()]
+    today_text = today.isoformat()
+    high_items = [item for item in active if is_high_fit(item.ai_analysis)]
+    new_items = [
+        item
+        for item in high_items
+        if (item.analyzed_at or "")[:10] == today_text
+    ]
+    tracking_items = [
+        item
+        for item in high_items
+        if (item.analyzed_at or "")[:10] != today_text
+    ]
 
     new_items.sort(key=lambda x: (x.deadline_date or date.max, -x.budget))
     tracking_items.sort(key=lambda x: (x.deadline_date or date.max, -x.budget))
@@ -190,13 +201,15 @@ def main() -> int:
     html = build_html(summary)
 
     print(
-        f"Report: {len(summary.new_items)} new, "
-        f"{len(summary.tracking_items)} tracking, "
+        f"Report: {len(summary.new_items)} new high-fit, "
+        f"{len(summary.tracking_items)} tracking high-fit, "
         f"{summary.expired_today_count} expired"
     )
 
     if args.skip_email:
         print("Skipped sending email.")
+    elif not summary.new_items:
+        print("Skipped sending email: no new high-fit tenders.")
     else:
         send_html_email(subject, html, dry_run=args.dry_run)
 

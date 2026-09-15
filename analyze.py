@@ -1,6 +1,12 @@
+import re
 from datetime import date
 
 from config import OPENAI_API_KEY, OPENAI_MODEL
+
+_FIT_PATTERNS = (
+    re.compile(r"【與雜波契合度】\s*[：:]?\s*(高|中|低)"),
+    re.compile(r"契合度[：:]\s*(高|中|低)"),
+)
 
 
 ANALYSIS_PROMPT = """你是公共藝術／互動裝置公司「雜波」的標案顧問。
@@ -21,6 +27,21 @@ ANALYSIS_PROMPT = """你是公共藝術／互動裝置公司「雜波」的標�
 - 停止受理日：{deadline}
 - 距離截止日：{days_left}
 """
+
+
+def parse_fit_level(analysis: str | None) -> str | None:
+    """從分析文取出契合度：高／中／低。無法判定則回傳 None。"""
+    if not analysis:
+        return None
+    for pattern in _FIT_PATTERNS:
+        match = pattern.search(analysis)
+        if match:
+            return match.group(1)
+    return None
+
+
+def is_high_fit(analysis: str | None) -> bool:
+    return parse_fit_level(analysis) == "高"
 
 
 def format_days_left(deadline_date: date | None, today: date) -> str:
