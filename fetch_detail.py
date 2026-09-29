@@ -58,7 +58,10 @@ def get_start_date(records: list[dict]) -> date | None:
 
 
 def parse_bool(value) -> bool:
-    return str(value).strip() in {"是", "Yes", "yes", "true", "True", "1"}
+    text = str(value).strip()
+    if text in {"是", "Yes", "yes", "true", "True", "1"}:
+        return True
+    return text.startswith("是") and not text.startswith("是否")
 
 
 def is_expired_on(deadline_date: date | None, today: date) -> bool:
@@ -105,9 +108,15 @@ def fetch_tender_detail(unit_id: str, job_number: str) -> dict | None:
         "is_electronic_bid": electronic_bid,
         "is_electronic_pickup": electronic_pickup,
         "url": detail.get("url", ""),
-        "method": get_detail_field(detail, "採購資料:招標方式", "已公告資料:招標方式"),
+        "method": get_detail_field(
+            detail,
+            "招標資料:招標方式",
+            "採購資料:招標方式",
+            "已公告資料:招標方式",
+        ),
         "location": get_detail_field(
             detail,
+            "其他:履約地點",
             "採購資料:履約地點（含地區）",
             "採購資料:履約地點",
             "已公告資料:履約地點（含地區）",
