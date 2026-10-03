@@ -36,9 +36,13 @@ def main() -> int:
         return 1
 
     init_db()
-    if not get_tender(tender_id):
+    existing = get_tender(tender_id)
+    if not existing:
         print(f"Error: 找不到標案 {tender_id}", file=sys.stderr)
         return 1
+    if (existing.ai_analysis or "").strip():
+        print(f"Already analyzed, skip: {tender_id}")
+        return 0
 
     if set_analysis(tender_id, analysis):
         print(f"Analysis saved: {tender_id}")

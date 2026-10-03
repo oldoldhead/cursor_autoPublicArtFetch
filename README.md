@@ -40,7 +40,7 @@ python daily_report.py --skip-search   # 4. 寄信
 | 參數 | 說明 |
 |------|------|
 | `--skip-email` | 只同步標案，不寄信 |
-| `--skip-search` | 只用 DB 資料寄信 |
+| `--skip-search` | 只用 DB 資料；僅寄從未通知過的高契合標案 |
 | `--allow-pending` | 待分析案件未完成仍寄信 |
 | `--use-openai` | 改用 OpenAI 分析（選用） |
-| `--commit-db` | commit database 到 git |
+| `--commit-db` | commit 並 push database 到 git |

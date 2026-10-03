@@ -17,6 +17,7 @@ from database import (
     list_active_tenders,
     make_tender_id,
     mark_expired_before,
+    mark_notified,
     now_iso,
     upsert_tender,
 )
@@ -86,6 +87,7 @@ def sync_search_results(today: date, use_openai: bool = False) -> tuple[int, int
             first_seen=first_seen,
             status="active",
             last_in_report=today.isoformat(),
+            notified_at=existing.notified_at if existing else None,
         )
         upsert_tender(row)
 
@@ -100,18 +102,9 @@ def build_report_summary(today: date, expired_count: int) -> ReportSummary:
         if not is_expired_on(item.deadline_date, today)
     ]
 
-    today_text = today.isoformat()
     high_items = [item for item in active if is_high_fit(item.ai_analysis)]
-    new_items = [
-        item
-        for item in high_items
-        if (item.analyzed_at or "")[:10] == today_text
-    ]
-    tracking_items = [
-        item
-        for item in high_items
-        if (item.analyzed_at or "")[:10] != today_text
-    ]
+    new_items = [item for item in high_items if not item.notified_at]
+    tracking_items = [item for item in high_items if item.notified_at]
 
     new_items.sort(key=lambda x: (x.deadline_date or date.max, -x.budget))
     tracking_items.sort(key=lambda x: (x.deadline_date or date.max, -x.budget))
@@ -151,8 +144,36 @@ def commit_database() -> None:
             print("Database committed to git.")
         else:
             print("Database unchanged, skip git commit.")
+
+        branch = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        push_ref = "HEAD"
+        if branch in {"", "HEAD"}:
+            origin_head = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "origin/HEAD"],
+                capture_output=True,
+                text=True,
+            )
+            default_branch = "main"
+            if origin_head.returncode == 0 and origin_head.stdout.strip():
+                default_branch = origin_head.stdout.strip().rsplit("/", 1)[-1]
+            push_ref = f"HEAD:{default_branch}"
+
+        push = subprocess.run(
+            ["git", "push", "origin", push_ref],
+            capture_output=True,
+            text=True,
+        )
+        if push.returncode != 0:
+            detail = (push.stderr or push.stdout or "").strip()
+            raise RuntimeError(f"git push 失敗，下次排程會重複寄信：{detail}")
+        print("Database pushed to origin.")
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
-        print(f"Git commit skipped: {exc}")
+        raise RuntimeError(f"Git commit/push failed: {exc}") from exc
 
 
 def main() -> int:
@@ -172,7 +193,7 @@ def main() -> int:
         action="store_true",
         help="允許在仍有待分析標案時寄信",
     )
-    parser.add_argument("--commit-db", action="store_true", help="執行後 commit database 到 git")
+    parser.add_argument("--commit-db", action="store_true", help="執行後 commit 並 push database")
     args = parser.parse_args()
 
     init_db()
@@ -201,20 +222,29 @@ def main() -> int:
     html = build_html(summary)
 
     print(
-        f"Report: {len(summary.new_items)} new high-fit, "
-        f"{len(summary.tracking_items)} tracking high-fit, "
+        f"Report: {len(summary.new_items)} unnotified high-fit, "
+        f"{len(summary.tracking_items)} already emailed high-fit, "
         f"{summary.expired_today_count} expired"
     )
+    for item in summary.new_items:
+        print(f"  notify: {item.tender_id} {item.title[:40]}")
 
     if args.skip_email:
         print("Skipped sending email.")
     elif not summary.new_items:
-        print("Skipped sending email: no new high-fit tenders.")
+        print("Skipped sending email: no high-fit tenders that were never emailed.")
     else:
         send_html_email(subject, html, dry_run=args.dry_run)
+        if not args.dry_run:
+            mark_notified([item.tender_id for item in summary.new_items])
+            print(f"Marked {len(summary.new_items)} tender(s) as emailed.")
 
     if args.commit_db:
-        commit_database()
+        try:
+            commit_database()
+        except RuntimeError as exc:
+            print(exc)
+            return 1
 
     return 0
 

@@ -29,6 +29,7 @@ class TenderRow:
     first_seen: str
     status: str
     last_in_report: str | None
+    notified_at: str | None = None
 
 
 def _connect() -> sqlite3.Connection:
@@ -63,10 +64,16 @@ def init_db() -> None:
                 analyzed_at TEXT,
                 first_seen TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'active',
-                last_in_report TEXT
+                last_in_report TEXT,
+                notified_at TEXT
             )
             """
         )
+        columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(tenders)").fetchall()
+        }
+        if "notified_at" not in columns:
+            conn.execute("ALTER TABLE tenders ADD COLUMN notified_at TEXT")
         conn.commit()
 
 
@@ -99,8 +106,8 @@ def upsert_tender(row: TenderRow) -> None:
                 start_date, deadline, deadline_date,
                 is_electronic_bid, is_electronic_pickup,
                 url, method, location, relevance_score, matched_keywords,
-                ai_analysis, analyzed_at, first_seen, status, last_in_report
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ai_analysis, analyzed_at, first_seen, status, last_in_report, notified_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(tender_id) DO UPDATE SET
                 title = excluded.title,
                 unit_name = excluded.unit_name,
@@ -142,6 +149,7 @@ def upsert_tender(row: TenderRow) -> None:
                 row.first_seen,
                 row.status,
                 row.last_in_report,
+                row.notified_at,
             ),
         )
         conn.commit()
@@ -200,6 +208,7 @@ def _row_to_tender(row: sqlite3.Row) -> TenderRow:
         first_seen=row["first_seen"],
         status=row["status"],
         last_in_report=row["last_in_report"],
+        notified_at=row["notified_at"] if "notified_at" in row.keys() else None,
     )
 
 
@@ -218,21 +227,42 @@ def list_pending_analysis() -> list[TenderRow]:
 
 
 def set_analysis(tender_id: str, analysis: str) -> bool:
-    """寫入 Cursor Agent 產生的分析。成功回傳 True。"""
+    """寫入 Cursor Agent 產生的分析。已有分析則不覆寫。成功回傳 True。"""
     analysis = analysis.strip()
     if not analysis:
         return False
+    existing = get_tender(tender_id)
+    if existing and (existing.ai_analysis or "").strip():
+        return True
     with _connect() as conn:
         cursor = conn.execute(
             """
             UPDATE tenders
             SET ai_analysis = ?, analyzed_at = ?
             WHERE tender_id = ? AND status = 'active'
+              AND (ai_analysis IS NULL OR ai_analysis = '')
             """,
             (analysis, now_iso(), tender_id),
         )
         conn.commit()
         return cursor.rowcount > 0
+
+
+def mark_notified(tender_ids: list[str], notified_at: str | None = None) -> None:
+    """標記這些標案已寄過信，之後不再列入通知。"""
+    if not tender_ids:
+        return
+    stamp = notified_at or now_iso()
+    with _connect() as conn:
+        conn.executemany(
+            """
+            UPDATE tenders
+            SET notified_at = COALESCE(notified_at, ?)
+            WHERE tender_id = ?
+            """,
+            [(stamp, tender_id) for tender_id in tender_ids],
+        )
+        conn.commit()
 
 
 def now_iso() -> str:

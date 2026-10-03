@@ -73,16 +73,16 @@ def build_html(summary: ReportSummary) -> str:
         {date_label}（週{weekday}）
       </p>
       <p style="font-size:14px;">
-        僅在出現「新的、契合度為高」的標案時寄出；中／低與舊案不列入。
+        僅在出現「從未寄過信」的高契合標案時寄出；中／低與已通知過的舊案不列入。
       </p>
 
-      <h2 style="font-size:18px;margin-top:28px;">🆕 新的高契合（{len(summary.new_items)} 筆）</h2>
+      <h2 style="font-size:18px;margin-top:28px;">🆕 尚未通知的高契合（{len(summary.new_items)} 筆）</h2>
       {new_html}
 
       <h2 style="font-size:18px;margin-top:28px;">📊 本日摘要</h2>
       <table style="border-collapse:collapse;font-size:14px;">
         <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">本次通知</td><td>{len(summary.new_items)} 筆</td></tr>
-        <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">資料庫仍在追蹤的高契合</td><td>{len(summary.tracking_items)} 筆（未列入本信）</td></tr>
+        <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">資料庫已通知過的高契合</td><td>{len(summary.tracking_items)} 筆（未列入本信）</td></tr>
         <tr><td style="padding:4px 16px 4px 0;color:#6b7280;">今日移出（已截止）</td><td>{summary.expired_today_count} 筆</td></tr>
       </table>
 
